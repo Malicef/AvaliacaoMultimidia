@@ -1,0 +1,119 @@
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+const progress = document.getElementById("progress");
+const currentTimeSpan = document.getElementById("currentTime");
+const durationSpan = document.getElementById("duration");
+
+let sourceNode;
+let audioBuffer;
+let gainNode = audioContext.createGain();
+let filterNode = audioContext.createBiquadFilter();
+let isFilterActive = false;
+let startTime = 0;
+let pausedAt = 0;
+let isPlaying = false;
+
+filterNode.type = "lowpass";
+filterNode.frequency.value = 1000;
+// Carrega o áudio ao iniciar
+fetch('assets/musica.mp3.crdownload')
+  .then(res => res.arrayBuffer())
+  .then(buffer => audioContext.decodeAudioData(buffer))
+  .then(decoded => {
+    audioBuffer = decoded;
+  });
+
+function formatTime(seconds){
+    const minutes = Math.floor(seconds/60);
+    const secs = Math.floor(seconds % 60).toString().padStart(2, '0');
+    return '${minutes}:${secs}';
+}
+
+// Cria e conecta o nó de áudio
+function createSource() {
+  sourceNode = audioContext.createBufferSource();
+  sourceNode.buffer = audioBuffer;
+  sourceNode.onended = () => isPlaying = false;
+
+  if (isFilterActive) {
+    sourceNode.connect(filterNode).connect(gainNode).connect(audioContext.destination);
+  } else {
+    sourceNode.connect(gainNode).connect(audioContext.destination);
+  }
+}
+
+// Atualiza o tempo da barra 
+function updateProgress() {
+    if (isPlaying && sourceNode && audioBuffer){
+        const current = audioContext.currentTime - startTime;
+        currentTimeSpan.textContent = formatTime(current);
+        progress.value = (current / audioBuffer.duration) * 100;
+        requestAnimationFrame(updateProgress);
+    }
+}
+
+// PLAY
+document.getElementById("play").addEventListener("click", () => {
+    if (!audioBuffer || isPlaying) return;
+    
+    createSource();
+    sourceNode.start(0, pausedAt);
+    startTime = audioContext.currentTime - pausedAt;
+    isPlaying = true;
+});
+
+// Atualiza a duração do play
+document.getElementById("play").addEventListener("click", () => {
+    if(audioBuffer){
+        durationSpan.textContent = formatTime(AudioBuffer.duration);
+        requestAnimationFrame(updateProgress);
+    }
+});
+
+// PAUSE
+document.getElementById("pause").addEventListener("click", () => {
+  if (isPlaying) {
+    sourceNode.stop();
+    pausedAt = audioContext.currentTime - startTime;
+    isPlaying = false;
+  }
+});
+
+// STOP
+document.getElementById("stop").addEventListener("click", () => {
+  if (isPlaying) {
+    sourceNode.stop();
+    isPlaying = false;
+  }
+  pausedAt = 0;
+});
+
+// VOLUME
+document.getElementById("volume").addEventListener("input", (e) => {
+  const volume = e.target.value / 100;
+  gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+});
+
+// FILTRO
+document.getElementById("toggleFilter").addEventListener("click", () => {
+  isFilterActive = !isFilterActive;
+
+  if (isPlaying) {
+    sourceNode.stop();
+    createSource();
+    sourceNode.start(0, pausedAt);
+    startTime = audioContext.currentTime - pausedAt;
+  }
+});
+
+progress.addEventListener("input", () => {
+    if(audioBuffer){
+        const newTime = (progress.value)/100 * audioBuffer.duration;
+    pausedAt = newTime;
+    if (isPlaying){
+        sourceNode.stop();
+        createSource();
+        sourceNode.start(0, pausedAt);
+        startTime = audioContext.currentTime - pausedAt;
+    }
+    }
+})
