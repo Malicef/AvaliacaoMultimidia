@@ -25,21 +25,45 @@ fetch('assets/musica.mp3.crdownload')
 function formatTime(seconds){
     const minutes = Math.floor(seconds/60);
     const secs = Math.floor(seconds % 60).toString().padStart(2, '0');
-    return '${minutes}:${secs}';
+    return `${minutes}:${secs}`;
+}
+
+function createSource() {
+    if (sourceNode) {
+      sourceNode.onended = null;
+      try { sourceNode.stop(); } catch(e) {}
+      sourceNode.disconnect();
+    }
+    
+    sourceNode = audioContext.createBufferSource();
+    sourceNode.buffer = audioBuffer;
+  
+    sourceNode.onended = () => {
+      isPlaying = false;
+      pausedAt = 0;
+    };
+  
+    if (isFilterActive) {
+      sourceNode.connect(filterNode).connect(gainNode).connect(audioContext.destination);
+    } else {
+      sourceNode.connect(gainNode).connect(audioContext.destination);
+    }
 }
 
 // Cria e conecta o nó de áudio
-function createSource() {
-  sourceNode = audioContext.createBufferSource();
-  sourceNode.buffer = audioBuffer;
-  sourceNode.onended = () => isPlaying = false;
+// function createSource() {
+//   sourceNode = audioContext.createBufferSource();
+//   sourceNode.buffer = audioBuffer;
+//   sourceNode.onended = () => isPlaying = false;
 
-  if (isFilterActive) {
-    sourceNode.connect(filterNode).connect(gainNode).connect(audioContext.destination);
-  } else {
-    sourceNode.connect(gainNode).connect(audioContext.destination);
-  }
-}
+//   if (isFilterActive) {
+//     sourceNode.connect(filterNode).connect(gainNode).connect(audioContext.destination);
+//   } else {
+//     sourceNode.connect(gainNode).connect(audioContext.destination);
+//   }
+
+// //   conectarControlesSource();
+// }
 
 // Atualiza o tempo da barra 
 function updateProgress() {
@@ -50,6 +74,25 @@ function updateProgress() {
         requestAnimationFrame(updateProgress);
     }
 }
+
+function pauseAudio() {
+    if (isPlaying && sourceNode) {
+        sourceNode.stop();
+        pausedAt = audioContext.currentTime - startTime;
+        isPlaying = false;
+      }
+}
+
+function stopAudio() {
+    if (isPlaying && sourceNode) {
+      sourceNode.stop();
+      isPlaying = false;
+    }
+    pausedAt = 0;
+  }
+
+document.getElementById("pause").addEventListener("click", pauseAudio);
+document.getElementById("stop").addEventListener("click", stopAudio);
 
 // PLAY
 document.getElementById("play").addEventListener("click", () => {
@@ -64,28 +107,48 @@ document.getElementById("play").addEventListener("click", () => {
 // Atualiza a duração do play
 document.getElementById("play").addEventListener("click", () => {
     if(audioBuffer){
-        durationSpan.textContent = formatTime(AudioBuffer.duration);
+        durationSpan.textContent = formatTime(audioBuffer.duration);
         requestAnimationFrame(updateProgress);
     }
 });
 
-// PAUSE
-document.getElementById("pause").addEventListener("click", () => {
-  if (isPlaying) {
-    sourceNode.stop();
-    pausedAt = audioContext.currentTime - startTime;
-    isPlaying = false;
-  }
-});
+// function conectarControlesSource(){
+//     document.getElementById("pause").onclick = () => {
+//         if (isPlaying){
+//             sourceNode.stop();
+//             pausedAt = audioContext.currentTime - startTime;
+//             isPlaying = false;
+//         }
+//     };
 
-// STOP
-document.getElementById("stop").addEventListener("click", () => {
-  if (isPlaying) {
-    sourceNode.stop();
-    isPlaying = false;
-  }
-  pausedAt = 0;
-});
+//     document.getElementById("stop").onclick = () => {
+//         if(isPlaying){
+//             sourceNode.stop();
+//             isPlaying = false;
+//         }
+//         pausedAt = 0;
+//     };
+// }
+    
+// conectarControlesSource();
+
+// // PAUSE
+// document.getElementById("pause").addEventListener("click", () => {
+//    if (isPlaying) {
+//      sourceNode.stop();
+//      pausedAt = audioContext.currentTime - startTime;
+//      isPlaying = false;
+//    }
+//  });
+
+// // // STOP
+//  document.getElementById("stop").addEventListener("click", () => {
+//    if (isPlaying) {
+//      sourceNode.stop();
+//      isPlaying = false;
+//    }
+//    pausedAt = 0;
+//  });
 
 // VOLUME
 document.getElementById("volume").addEventListener("input", (e) => {
@@ -95,15 +158,17 @@ document.getElementById("volume").addEventListener("input", (e) => {
 
 // FILTRO
 document.getElementById("toggleFilter").addEventListener("click", () => {
-  isFilterActive = !isFilterActive;
-
-  if (isPlaying) {
-    sourceNode.stop();
-    createSource();
-    sourceNode.start(0, pausedAt);
-    startTime = audioContext.currentTime - pausedAt;
-  }
-});
+    isFilterActive = !isFilterActive;
+  
+    if (isPlaying) {
+      sourceNode.stop();
+      createSource();
+      sourceNode.start(0, pausedAt);
+      startTime = audioContext.currentTime - pausedAt;
+      isPlaying = true;
+      updateProgress();
+    }
+  });
 
 progress.addEventListener("input", () => {
     if(audioBuffer){
@@ -117,3 +182,4 @@ progress.addEventListener("input", () => {
     }
     }
 })
+
