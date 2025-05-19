@@ -40,7 +40,6 @@ function createSource() {
   
     sourceNode.onended = () => {
       isPlaying = false;
-      pausedAt = 0;
     };
   
     if (isFilterActive) {
@@ -50,40 +49,16 @@ function createSource() {
     }
 }
 
-// Cria e conecta o nó de áudio
-// function createSource() {
-//   sourceNode = audioContext.createBufferSource();
-//   sourceNode.buffer = audioBuffer;
-//   sourceNode.onended = () => isPlaying = false;
-
-//   if (isFilterActive) {
-//     sourceNode.connect(filterNode).connect(gainNode).connect(audioContext.destination);
-//   } else {
-//     sourceNode.connect(gainNode).connect(audioContext.destination);
-//   }
-
-// //   conectarControlesSource();
-// }
-
-// Atualiza o tempo da barra 
-function updateProgress() {
-    if (isPlaying && sourceNode && audioBuffer){
-        const current = audioContext.currentTime - startTime;
-        currentTimeSpan.textContent = formatTime(current);
-        progress.value = (current / audioBuffer.duration) * 100;
-        requestAnimationFrame(updateProgress);
-    }
-}
 
 function pauseAudio() {
-    if (isPlaying && sourceNode) {
-        sourceNode.stop();
-        pausedAt = audioContext.currentTime - startTime;
-        isPlaying = false;
-      }
-}
-
-function stopAudio() {
+  if (isPlaying) {
+    sourceNode.stop();
+    pausedAt = audioContext.currentTime - startTime;
+    isPlaying = false;
+    }
+  }
+  
+  function stopAudio() {
     if (isPlaying && sourceNode) {
       sourceNode.stop();
       isPlaying = false;
@@ -91,6 +66,16 @@ function stopAudio() {
     pausedAt = 0;
   }
 
+  // Atualiza o tempo da barra 
+  function updateProgress() {
+      if (isPlaying && sourceNode && audioBuffer){
+          const current = audioContext.currentTime - startTime;
+          currentTimeSpan.textContent = formatTime(current);
+          progress.value = (current / audioBuffer.duration) * 100;
+          requestAnimationFrame(updateProgress);
+      }
+  }
+  
 document.getElementById("pause").addEventListener("click", pauseAudio);
 document.getElementById("stop").addEventListener("click", stopAudio);
 
@@ -111,44 +96,6 @@ document.getElementById("play").addEventListener("click", () => {
         requestAnimationFrame(updateProgress);
     }
 });
-
-// function conectarControlesSource(){
-//     document.getElementById("pause").onclick = () => {
-//         if (isPlaying){
-//             sourceNode.stop();
-//             pausedAt = audioContext.currentTime - startTime;
-//             isPlaying = false;
-//         }
-//     };
-
-//     document.getElementById("stop").onclick = () => {
-//         if(isPlaying){
-//             sourceNode.stop();
-//             isPlaying = false;
-//         }
-//         pausedAt = 0;
-//     };
-// }
-    
-// conectarControlesSource();
-
-// // PAUSE
-// document.getElementById("pause").addEventListener("click", () => {
-//    if (isPlaying) {
-//      sourceNode.stop();
-//      pausedAt = audioContext.currentTime - startTime;
-//      isPlaying = false;
-//    }
-//  });
-
-// // // STOP
-//  document.getElementById("stop").addEventListener("click", () => {
-//    if (isPlaying) {
-//      sourceNode.stop();
-//      isPlaying = false;
-//    }
-//    pausedAt = 0;
-//  });
 
 // VOLUME
 document.getElementById("volume").addEventListener("input", (e) => {
